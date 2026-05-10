@@ -3,20 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stealth Creator's Portal v3</title>
+    <title>Stealth Creator's Portal v4</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --bg: #1a1a1a; --text: #e0e0e0; --accent: #4a9eff; --danger: #ff5555; --success: #2ecc71; }
+        :root { --bg: #1a1a1a; --text: #e0e0e0; --accent: #4a9eff; --danger: #ff5555; --success: #2ecc71; --warning: #f1c40f; }
         body { font-family: 'Courier New', monospace; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
         h1, h2 { color: var(--accent); border-bottom: 1px solid var(--accent); padding-bottom: 5px; }
         #map { height: 250px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--accent); }
         .module { background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        button { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 5px; width: 100%; font-size: 14px; cursor: pointer; margin-top: 8px; }
+        button { border: none; padding: 12px; border-radius: 5px; width: 100%; font-size: 14px; cursor: pointer; margin-top: 8px; color: white; }
+        .primary-btn { background: var(--accent); }
         .ugly-btn { background: var(--danger); font-weight: bold; }
         .stop-btn { background: #555; margin-top: 5px; display: none; }
+        .save-btn { background: var(--success); }
         textarea, input, select { width: 100%; background: #333; color: white; border: 1px solid #555; padding: 10px; margin-top: 5px; border-radius: 5px; box-sizing: border-box; }
-        .history-item { border-left: 3px solid var(--accent); padding: 10px; margin-bottom: 15px; font-size: 0.9em; background: #222; border-radius: 0 5px 5px 0; position: relative; }
-        .recall-link { color: var(--accent); text-decoration: underline; cursor: pointer; display: block; margin-top: 5px; font-weight: bold; }
+        
+        /* History Styles */
+        .history-item { border-left: 3px solid var(--accent); padding: 10px; margin-bottom: 15px; font-size: 0.9em; background: #222; border-radius: 0 5px 5px 0; }
+        .recall-link { color: var(--accent); text-decoration: underline; cursor: pointer; display: block; margin-top: 10px; font-weight: bold; }
+        .action-btns { display: flex; gap: 10px; margin-top: 10px; }
+        .edit-btn { background: var(--warning); color: black; padding: 5px; width: auto; flex: 1; font-size: 11px; }
+        .del-btn { background: var(--danger); padding: 5px; width: auto; flex: 1; font-size: 11px; }
+        .edit-mode textarea { margin-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -26,7 +34,7 @@
     <div class="module">
         <h2>📍 Stealth Map</h2>
         <div id="map"></div>
-        <button onclick="findMe()">📡 FIND MY LOCATION</button>
+        <button class="primary-btn" onclick="findMe()">📡 FIND MY LOCATION</button>
         <input type="text" id="locName" placeholder="Name this 'Tucked Away' spot...">
     </div>
 
@@ -43,8 +51,8 @@
             <option>Medium: Polymer Clay</option>
         </select>
         
-        <textarea id="notes" rows="3" placeholder="Tactile notes: Cold clay? Thick paint?"></textarea>
-        <button style="background: var(--success);" onclick="saveEntry()">💾 LOG & SAVE SPOT</button>
+        <textarea id="notes" rows="3" placeholder="Tactile notes..."></textarea>
+        <button class="save-btn" onclick="saveEntry()">💾 LOG & SAVE SPOT</button>
     </div>
 
     <div class="module">
@@ -59,17 +67,9 @@
         let currentMarker = null;
         let countdown;
 
-        function findMe() {
-            map.locate({setView: true, maxZoom: 16});
-        }
-
-        map.on('locationfound', function(e) {
-            updateMarker(e.latlng, "You are here");
-        });
-
-        map.on('click', function(e) {
-            updateMarker(e.latlng);
-        });
+        function findMe() { map.locate({setView: true, maxZoom: 16}); }
+        map.on('locationfound', (e) => updateMarker(e.latlng, "You are here"));
+        map.on('click', (e) => updateMarker(e.latlng));
 
         function updateMarker(latlng, popupText = "") {
             if (currentMarker) map.removeLayer(currentMarker);
@@ -77,7 +77,6 @@
             if (popupText) currentMarker.bindPopup(popupText).openPopup();
         }
 
-        // Tactical Recall Function
         function recallSpot(lat, lng, name) {
             const pos = L.latLng(lat, lng);
             map.setView(pos, 16);
@@ -85,9 +84,7 @@
             document.getElementById('top').scrollIntoView({behavior: 'smooth'});
         }
 
-        function getStardate() {
-            return Math.floor((new Date() - new Date("12/22/1978")) / 86400000);
-        }
+        function getStardate() { return Math.floor((new Date() - new Date("12/22/1978")) / 86400000); }
 
         function startSession() {
             document.getElementById('startBtn').style.display = 'none';
@@ -116,11 +113,9 @@
                 id: Date.now(),
                 stardate: getStardate(),
                 location: document.getElementById('locName').value || "Unnamed Spot",
-                lat: coords.lat,
-                lng: coords.lng,
+                lat: coords.lat, lng: coords.lng,
                 medium: document.getElementById('medium').value,
-                notes: document.getElementById('notes').value,
-                time: new Date().toLocaleTimeString()
+                notes: document.getElementById('notes').value
             };
             let history = JSON.parse(localStorage.getItem('stealthLog') || "[]");
             history.unshift(entry);
@@ -129,18 +124,60 @@
             alert("Transmission Saved.");
         }
 
+        function deleteEntry(id) {
+            if(confirm("Permanently redact this transmission?")) {
+                let history = JSON.parse(localStorage.getItem('stealthLog') || "[]");
+                history = history.filter(e => e.id !== id);
+                localStorage.setItem('stealthLog', JSON.stringify(history));
+                displayHistory();
+            }
+        }
+
+        function toggleEdit(id) {
+            const el = document.getElementById(`item-${id}`);
+            el.classList.toggle('edit-mode');
+        }
+
+        function saveEdit(id) {
+            const newNotes = document.getElementById(`edit-notes-${id}`).value;
+            const newLoc = document.getElementById(`edit-loc-${id}`).value;
+            let history = JSON.parse(localStorage.getItem('stealthLog') || "[]");
+            const index = history.findIndex(e => e.id === id);
+            if (index !== -1) {
+                history[index].notes = newNotes;
+                history[index].location = newLoc;
+                localStorage.setItem('stealthLog', JSON.stringify(history));
+                displayHistory();
+            }
+        }
+
         function displayHistory() {
             const container = document.getElementById('history');
             const history = JSON.parse(localStorage.getItem('stealthLog') || "[]");
             container.innerHTML = history.map(e => `
-                <div class="history-item">
-                    <strong>STARDATE ${e.stardate}</strong> | ${e.location}<br>
-                    <em>${e.medium}</em>: ${e.notes}
-                    <span class="recall-link" onclick="recallSpot(${e.lat}, ${e.lng}, '${e.location.replace(/'/g, "\\'")}')">
-                        🎯 RECALL SPOT ON MAP
-                    </span>
+                <div class="history-item" id="item-${e.id}">
+                    <div class="view-mode">
+                        <strong>STARDATE ${e.stardate}</strong> | <span id="loc-text-${e.id}">${e.location}</span><br>
+                        <em>${e.medium}</em>: <span id="notes-text-${e.id}">${e.notes}</span>
+                        <span class="recall-link" onclick="recallSpot(${e.lat}, ${e.lng}, '${e.location.replace(/'/g, "\\'")}')">🎯 RECALL SPOT</span>
+                        <div class="action-btns">
+                            <button class="edit-btn" onclick="toggleEdit(${e.id})">EDIT ENTRY</button>
+                            <button class="del-btn" onclick="deleteEntry(${e.id})">DELETE</button>
+                        </div>
+                    </div>
+                    <div class="edit-mode" style="display:none;">
+                        <input type="text" id="edit-loc-${e.id}" value="${e.location}">
+                        <textarea id="edit-notes-${e.id}">${e.notes}</textarea>
+                        <button class="save-btn" onclick="saveEdit(${e.id})">SAVE CHANGES</button>
+                        <button onclick="toggleEdit(${e.id})" style="background:#555;">CANCEL</button>
+                    </div>
                 </div>
             `).join('');
+            
+            // Re-apply display logic for edit mode
+            document.querySelectorAll('.edit-mode').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.history-item.edit-mode .view-mode').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.history-item.edit-mode .edit-mode').forEach(el => el.style.display = 'block');
         }
         displayHistory();
     </script>
