@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stealth Creator's Portal v2</title>
+    <title>Stealth Creator's Portal v3</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root { --bg: #1a1a1a; --text: #e0e0e0; --accent: #4a9eff; --danger: #ff5555; --success: #2ecc71; }
@@ -15,12 +15,13 @@
         .ugly-btn { background: var(--danger); font-weight: bold; }
         .stop-btn { background: #555; margin-top: 5px; display: none; }
         textarea, input, select { width: 100%; background: #333; color: white; border: 1px solid #555; padding: 10px; margin-top: 5px; border-radius: 5px; box-sizing: border-box; }
-        .history-item { border-left: 3px solid var(--accent); padding-left: 10px; margin-bottom: 15px; font-size: 0.9em; background: #222; padding: 10px; border-radius: 0 5px 5px 0; }
+        .history-item { border-left: 3px solid var(--accent); padding: 10px; margin-bottom: 15px; font-size: 0.9em; background: #222; border-radius: 0 5px 5px 0; position: relative; }
+        .recall-link { color: var(--accent); text-decoration: underline; cursor: pointer; display: block; margin-top: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1>🛸 STEALTH PORTAL</h1>
+    <h1 id="top">🛸 STEALTH PORTAL</h1>
     
     <div class="module">
         <h2>📍 Stealth Map</h2>
@@ -63,14 +64,26 @@
         }
 
         map.on('locationfound', function(e) {
-            if (currentMarker) map.removeLayer(currentMarker);
-            currentMarker = L.marker(e.latlng).addTo(map).bindPopup("You are here").openPopup();
+            updateMarker(e.latlng, "You are here");
         });
 
         map.on('click', function(e) {
-            if (currentMarker) map.removeLayer(currentMarker);
-            currentMarker = L.marker(e.latlng).addTo(map);
+            updateMarker(e.latlng);
         });
+
+        function updateMarker(latlng, popupText = "") {
+            if (currentMarker) map.removeLayer(currentMarker);
+            currentMarker = L.marker(latlng).addTo(map);
+            if (popupText) currentMarker.bindPopup(popupText).openPopup();
+        }
+
+        // Tactical Recall Function
+        function recallSpot(lat, lng, name) {
+            const pos = L.latLng(lat, lng);
+            map.setView(pos, 16);
+            updateMarker(pos, `Recall: ${name}`);
+            document.getElementById('top').scrollIntoView({behavior: 'smooth'});
+        }
 
         function getStardate() {
             return Math.floor((new Date() - new Date("12/22/1978")) / 86400000);
@@ -97,10 +110,14 @@
         }
 
         function saveEntry() {
+            if (!currentMarker) { alert("Please mark a spot on the map first."); return; }
+            const coords = currentMarker.getLatLng();
             const entry = {
+                id: Date.now(),
                 stardate: getStardate(),
                 location: document.getElementById('locName').value || "Unnamed Spot",
-                latlng: currentMarker ? currentMarker.getLatLng() : "Manual Entry",
+                lat: coords.lat,
+                lng: coords.lng,
                 medium: document.getElementById('medium').value,
                 notes: document.getElementById('notes').value,
                 time: new Date().toLocaleTimeString()
@@ -109,7 +126,7 @@
             history.unshift(entry);
             localStorage.setItem('stealthLog', JSON.stringify(history));
             displayHistory();
-            alert("Spot and Process Logged.");
+            alert("Transmission Saved.");
         }
 
         function displayHistory() {
@@ -118,8 +135,10 @@
             container.innerHTML = history.map(e => `
                 <div class="history-item">
                     <strong>STARDATE ${e.stardate}</strong> | ${e.location}<br>
-                    <small>${e.latlng.lat ? e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4) : 'No GPS'}</small><br>
                     <em>${e.medium}</em>: ${e.notes}
+                    <span class="recall-link" onclick="recallSpot(${e.lat}, ${e.lng}, '${e.location.replace(/'/g, "\\'")}')">
+                        🎯 RECALL SPOT ON MAP
+                    </span>
                 </div>
             `).join('');
         }
