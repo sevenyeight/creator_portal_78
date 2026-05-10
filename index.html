@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stealth Creator's Portal</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root { --bg: #1a1a1a; --text: #e0e0e0; --accent: #4a9eff; --danger: #ff5555; }
+        body { font-family: 'Courier New', monospace; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+        h1, h2 { color: var(--accent); border-bottom: 1px solid var(--accent); padding-bottom: 5px; }
+        #map { height: 250px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--accent); }
+        .module { background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        button { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 5px; width: 100%; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        .ugly-btn { background: var(--danger); font-weight: bold; }
+        textarea, input, select { width: 100%; background: #333; color: white; border: 1px solid #555; padding: 10px; margin-top: 5px; border-radius: 5px; box-sizing: border-box; }
+        .history-item { border-left: 3px solid var(--accent); padding-left: 10px; margin-bottom: 15px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+    <h1>🛸 STEALTH PORTAL</h1>
+    
+    <div class="module">
+        <h2>📍 Stealth Map</h2>
+        <div id="map"></div>
+        <p style="font-size: 0.8em;">Tap to mark a "Tucked Away" spot.</p>
+        <input type="text" id="locName" placeholder="Name this spot (e.g. Willow Bend)">
+    </div>
+
+    <div class="module">
+        <h2>🛠️ Session Protocol</h2>
+        <button class="ugly-btn" onclick="startSession()">PRESS TO TRIGGER "UGLY START"</button>
+        <div id="timerDisplay" style="text-align:center; font-size: 1.5em; margin-top: 10px;">20:00</div>
+        
+        <select id="medium">
+            <option>Primary Medium: Oil</option>
+            <option>Primary Medium: Acrylic</option>
+            <option>Primary Medium: Watercolor</option>
+            <option>Primary Medium: Markers</option>
+            <option>Primary Medium: Clay</option>
+        </select>
+        
+        <textarea id="notes" rows="3" placeholder="Tactile grounding notes... texture/temp?"></textarea>
+        <button onclick="saveEntry()">LOG VISITOR DATA</button>
+    </div>
+
+    <div class="module">
+        <h2>📜 Transmission History</h2>
+        <div id="history"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        let currentMarker = null;
+
+        map.on('click', function(e) {
+            if (currentMarker) map.removeLayer(currentMarker);
+            currentMarker = L.marker(e.latlng).addTo(map);
+        });
+
+        function getStardate() {
+            const birth = new Date("12/22/1978");
+            const today = new Date();
+            return Math.floor((today - birth) / (1000 * 60 * 60 * 24));
+        }
+
+        function startSession() {
+            alert("Ugly Start Triggered. perfectionism broken. Engage Sonic Bubble.");
+            let timeLeft = 1200; // 20 minutes
+            const timer = setInterval(() => {
+                if(timeLeft <= 0) { clearInterval(timer); alert("Chaos Sprint Complete."); }
+                let mins = Math.floor(timeLeft / 60);
+                let secs = timeLeft % 60;
+                document.getElementById('timerDisplay').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                timeLeft--;
+            }, 1000);
+        }
+
+        function saveEntry() {
+            const entry = {
+                stardate: getStardate(),
+                location: document.getElementById('locName').value,
+                coords: currentMarker ? currentMarker.getLatLng() : "None",
+                medium: document.getElementById('medium').value,
+                notes: document.getElementById('notes').value
+            };
+            let history = JSON.parse(localStorage.getItem('stealthLog') || "[]");
+            history.unshift(entry);
+            localStorage.setItem('stealthLog', JSON.stringify(history));
+            displayHistory();
+        }
+
+        function displayHistory() {
+            const container = document.getElementById('history');
+            const history = JSON.parse(localStorage.getItem('stealthLog') || "[]");
+            container.innerHTML = history.map(e => `
+                <div class="history-item">
+                    <strong>Stardate: ${e.stardate}</strong> | ${e.location}<br>
+                    <em>${e.medium}</em><br>
+                    ${e.notes}
+                </div>
+            `).join('');
+        }
+        displayHistory();
+    </script>
+</body>
+</html>
