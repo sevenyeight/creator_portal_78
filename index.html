@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stealth Creator's Portal</title>
+    <title>Stealth Creator's Portal v2</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --bg: #1a1a1a; --text: #e0e0e0; --accent: #4a9eff; --danger: #ff5555; }
+        :root { --bg: #1a1a1a; --text: #e0e0e0; --accent: #4a9eff; --danger: #ff5555; --success: #2ecc71; }
         body { font-family: 'Courier New', monospace; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
         h1, h2 { color: var(--accent); border-bottom: 1px solid var(--accent); padding-bottom: 5px; }
-        #map { height: 250px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--accent); }
+        #map { height: 250px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--accent); }
         .module { background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        button { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 5px; width: 100%; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        button { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 5px; width: 100%; font-size: 14px; cursor: pointer; margin-top: 8px; }
         .ugly-btn { background: var(--danger); font-weight: bold; }
+        .stop-btn { background: #555; margin-top: 5px; display: none; }
         textarea, input, select { width: 100%; background: #333; color: white; border: 1px solid #555; padding: 10px; margin-top: 5px; border-radius: 5px; box-sizing: border-box; }
-        .history-item { border-left: 3px solid var(--accent); padding-left: 10px; margin-bottom: 15px; font-size: 0.9em; }
+        .history-item { border-left: 3px solid var(--accent); padding-left: 10px; margin-bottom: 15px; font-size: 0.9em; background: #222; padding: 10px; border-radius: 0 5px 5px 0; }
     </style>
 </head>
 <body>
@@ -24,25 +25,25 @@
     <div class="module">
         <h2>📍 Stealth Map</h2>
         <div id="map"></div>
-        <p style="font-size: 0.8em;">Tap to mark a "Tucked Away" spot.</p>
-        <input type="text" id="locName" placeholder="Name this spot (e.g. Willow Bend)">
+        <button onclick="findMe()">📡 FIND MY LOCATION</button>
+        <input type="text" id="locName" placeholder="Name this 'Tucked Away' spot...">
     </div>
 
     <div class="module">
         <h2>🛠️ Session Protocol</h2>
-        <button class="ugly-btn" onclick="startSession()">PRESS TO TRIGGER "UGLY START"</button>
-        <div id="timerDisplay" style="text-align:center; font-size: 1.5em; margin-top: 10px;">20:00</div>
+        <button id="startBtn" class="ugly-btn" onclick="startSession()">TRIGGER "UGLY START"</button>
+        <button id="stopBtn" class="stop-btn" onclick="stopSession()">STOP CHAOS SPRINT</button>
+        <div id="timerDisplay" style="text-align:center; font-size: 1.8em; margin: 15px 0; font-weight: bold;">20:00</div>
         
         <select id="medium">
-            <option>Primary Medium: Oil</option>
-            <option>Primary Medium: Acrylic</option>
-            <option>Primary Medium: Watercolor</option>
-            <option>Primary Medium: Markers</option>
-            <option>Primary Medium: Clay</option>
+            <option>Medium: Oil / Palette Knife</option>
+            <option>Medium: Acrylic / Markers</option>
+            <option>Medium: Watercolor</option>
+            <option>Medium: Polymer Clay</option>
         </select>
         
-        <textarea id="notes" rows="3" placeholder="Tactile grounding notes... texture/temp?"></textarea>
-        <button onclick="saveEntry()">LOG VISITOR DATA</button>
+        <textarea id="notes" rows="3" placeholder="Tactile notes: Cold clay? Thick paint?"></textarea>
+        <button style="background: var(--success);" onclick="saveEntry()">💾 LOG & SAVE SPOT</button>
     </div>
 
     <div class="module">
@@ -55,6 +56,16 @@
         let map = L.map('map').setView([0, 0], 2);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         let currentMarker = null;
+        let countdown;
+
+        function findMe() {
+            map.locate({setView: true, maxZoom: 16});
+        }
+
+        map.on('locationfound', function(e) {
+            if (currentMarker) map.removeLayer(currentMarker);
+            currentMarker = L.marker(e.latlng).addTo(map).bindPopup("You are here").openPopup();
+        });
 
         map.on('click', function(e) {
             if (currentMarker) map.removeLayer(currentMarker);
@@ -62,16 +73,15 @@
         });
 
         function getStardate() {
-            const birth = new Date("12/22/1978");
-            const today = new Date();
-            return Math.floor((today - birth) / (1000 * 60 * 60 * 24));
+            return Math.floor((new Date() - new Date("12/22/1978")) / 86400000);
         }
 
         function startSession() {
-            alert("Ugly Start Triggered. perfectionism broken. Engage Sonic Bubble.");
-            let timeLeft = 1200; // 20 minutes
-            const timer = setInterval(() => {
-                if(timeLeft <= 0) { clearInterval(timer); alert("Chaos Sprint Complete."); }
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'block';
+            let timeLeft = 1200;
+            countdown = setInterval(() => {
+                if(timeLeft <= 0) { stopSession(); alert("Chaos Sprint Complete."); }
                 let mins = Math.floor(timeLeft / 60);
                 let secs = timeLeft % 60;
                 document.getElementById('timerDisplay').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
@@ -79,18 +89,27 @@
             }, 1000);
         }
 
+        function stopSession() {
+            clearInterval(countdown);
+            document.getElementById('startBtn').style.display = 'block';
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('timerDisplay').innerText = "20:00";
+        }
+
         function saveEntry() {
             const entry = {
                 stardate: getStardate(),
-                location: document.getElementById('locName').value,
-                coords: currentMarker ? currentMarker.getLatLng() : "None",
+                location: document.getElementById('locName').value || "Unnamed Spot",
+                latlng: currentMarker ? currentMarker.getLatLng() : "Manual Entry",
                 medium: document.getElementById('medium').value,
-                notes: document.getElementById('notes').value
+                notes: document.getElementById('notes').value,
+                time: new Date().toLocaleTimeString()
             };
             let history = JSON.parse(localStorage.getItem('stealthLog') || "[]");
             history.unshift(entry);
             localStorage.setItem('stealthLog', JSON.stringify(history));
             displayHistory();
+            alert("Spot and Process Logged.");
         }
 
         function displayHistory() {
@@ -98,9 +117,9 @@
             const history = JSON.parse(localStorage.getItem('stealthLog') || "[]");
             container.innerHTML = history.map(e => `
                 <div class="history-item">
-                    <strong>Stardate: ${e.stardate}</strong> | ${e.location}<br>
-                    <em>${e.medium}</em><br>
-                    ${e.notes}
+                    <strong>STARDATE ${e.stardate}</strong> | ${e.location}<br>
+                    <small>${e.latlng.lat ? e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4) : 'No GPS'}</small><br>
+                    <em>${e.medium}</em>: ${e.notes}
                 </div>
             `).join('');
         }
